@@ -1,5 +1,5 @@
-manuf
-===
+manuf2
+======
 
 [![Build Status](https://github.com/coolbho3k/manuf/workflows/test/badge.svg)](https://github.com/coolbho3k/manuf/actions)
 [![Build Status](https://badge.fury.io/py/manuf.svg)](https://pypi.org/project/manuf/)
@@ -16,19 +16,19 @@ the database.
 
 See [Wireshark's OUI lookup tool](https://www.wireshark.org/tools/oui-lookup.html).
 
-Written by Michael Huang (coolbho3k).
+This is a fork of manuf written by Michael Huang (coolbho3k).
 
 Install
 ---
 
 #### With PyPi
 
-    pip install manuf
+    pip install manuf2
 
 #### Or Manually
 
-    git clone https://github.com/coolbho3k/manuf
-    cd manuf
+    git clone https://github.com/joshschmelzle/manuf2
+    cd manuf2
     python setup.py install
 
 Usage
@@ -36,7 +36,7 @@ Usage
 
 #### As a library:
 
-    >>> from manuf import manuf
+    >>> from manuf2 import manuf
     >>> p = manuf.MacParser(update=True)
     >>> p.get_all('BC:EE:7B:00:00:00')
     Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
@@ -47,32 +47,32 @@ Usage
 
 #### As a command line:
 
-    $ manuf BC:EE:7B:00:00:00
+    $ manuf2 BC:EE:7B:00:00:00
     Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
     
 Use a manuf file in a custom location:
 
-    $ manuf --manuf ~/manuf BC:EE:7B:00:00:00
+    $ manuf2 --manuf ~/manuf BC:EE:7B:00:00:00
     Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
 
 Automatically update the manuf file from Wireshark's git:
 
-    $ manuf --update BC:EE:7B:00:00:00
+    $ manuf2 --update BC:EE:7B:00:00:00
     Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
 
 Note, that this command will update the manuf file bundled with this package. If you do not wish to 
 modify this, or do not have permissions to do so, you must specify a custom manuf file to perform an update.
 
-    $ manuf --update --manuf ~/manuf BC:EE:7B:00:00:00
+    $ manuf2 --update --manuf ~/manuf BC:EE:7B:00:00:00
     Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
 
 Alternatively you can call the program with:
 
-    python -m manuf
+    python -m manuf2
 or by executing the `manuf.py` script directly
 
 ```bash
-./manuf/manuf.py # From the install folder
+./manuf2/manuf.py # From the install folder
 ```
 
 Features and advantages of manuf
@@ -185,14 +185,14 @@ this repository, but will not be updated.
 * License for manuf database: GPLv2
 
 The latest version of the manuf database can be found in the
-[Wireshark git repository](https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf).
+[Wireshark automated data](https://www.wireshark.org/download/automated/data/manuf").
 The database there is updated about once a week, so you may want to grab the
 latest version to use instead of using the one provided here by using the
 --update flag on the command line:
 
-    manuf --update
+    manuf2 --update
 
 Run tests
 ---
 
-    python -m unittest manuf.test.test_manuf
+    python -m unittest manuf2.test.test_manuf

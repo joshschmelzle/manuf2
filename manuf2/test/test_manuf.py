@@ -1,4 +1,4 @@
-import manuf
+import manuf2
 import os
 import unittest
 
@@ -7,7 +7,7 @@ class ManufTestCase(unittest.TestCase):
     WFA_URL = "https://gitlab.com/wireshark/wireshark/raw/master/wka"
 
     def setUp(self):
-        self.manuf = manuf.MacParser(manuf_name="manuf/test/manuf")
+        self.manuf = manuf2.MacParser(manuf_name="manuf/test/manuf")
     #
     def test_update_update(self):
         self.manuf.update(manuf_url=self.MANUF_URL, wfa_url=self.WFA_URL, manuf_name="manuf_update")

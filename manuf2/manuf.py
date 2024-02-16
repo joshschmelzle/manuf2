@@ -15,8 +15,8 @@
 Converts MAC addresses into a manufacturer using Wireshark's OUI database.
 
 See README.md.
-
 """
+
 from __future__ import print_function
 from collections import namedtuple
 import argparse
@@ -41,7 +41,8 @@ import importlib
 import os
 
 # Vendor tuple
-Vendor = namedtuple('Vendor', ['manuf', 'manuf_long', 'comment'])
+Vendor = namedtuple("Vendor", ["manuf", "manuf_long", "comment"])
+
 
 class MacParser(object):
     """Class that contains a parser for Wireshark's OUI database.
@@ -61,10 +62,11 @@ class MacParser(object):
         IOError: If manuf file could not be found.
 
     """
-    MANUF_URL = "https://gitlab.com/wireshark/wireshark/raw/master/manuf"
+
+    MANUF_URL = "https://www.wireshark.org/download/automated/data/manuf"
     WFA_URL = "https://gitlab.com/wireshark/wireshark/raw/master/wka"
 
-    def  __init__(self, manuf_name=None, update=False):
+    def __init__(self, manuf_name=None, update=False):
         self._manuf_name = manuf_name or self.get_packaged_manuf_file_path()
         if update:
             self.update()
@@ -111,11 +113,12 @@ class MacParser(object):
                 comment = fields[3].strip("#").strip() if len(fields) > 3 else None
                 long_name = fields[2] if len(fields) > 2 else None
 
-                self._masks[(mask, mac_int >> mask)] = Vendor(manuf=fields[1], manuf_long=long_name, comment=comment)
+                self._masks[(mask, mac_int >> mask)] = Vendor(
+                    manuf=fields[1], manuf_long=long_name, comment=comment
+                )
             except:
-                print( "Couldn't parse line", line)
+                print("Couldn't parse line", line)
                 raise
-
 
         manuf_file.close()
 
@@ -141,9 +144,9 @@ class MacParser(object):
 
         # Retrieve the new database
         try:
-            response = urlopen(Request(manuf_url, headers={'User-Agent': 'Mozilla'}))
-        except URLError:
-            raise URLError("Failed downloading OUI database")
+            response = urlopen(Request(manuf_url, headers={"User-Agent": "Mozilla"}))
+        except URLError as e:
+            raise URLError("Failed downloading OUI database") from e
 
         # Parse the response
         if response.code == 200:
@@ -161,9 +164,9 @@ class MacParser(object):
 
         # Append WFA to new database
         try:
-            response = urlopen(Request(wfa_url, headers={'User-Agent': 'Mozilla'}))
-        except URLError:
-            raise URLError("Failed downloading WFA database")
+            response = urlopen(Request(wfa_url, headers={"User-Agent": "Mozilla"}))
+        except URLError as e:
+            raise URLError("Failed downloading WFA database") from e
 
         # Parse the response
         if response.code == 200:
@@ -302,24 +305,34 @@ class MacParser(object):
         else:
             package_init_path = importlib.import_module(__package__).__file__
         package_path = os.path.abspath(os.path.join(package_init_path, os.pardir))
-        manuf_file_path = os.path.join(package_path, 'manuf')
+        manuf_file_path = os.path.join(package_path, "manuf")
         return manuf_file_path
 
 
 def main(*input_args):
     """Simple command line wrapping for MacParser."""
-    argparser = argparse.ArgumentParser(description="Parser utility for Wireshark's OUI database.")
-    argparser.add_argument('-m', "--manuf",
-                           help="manuf file path. Defaults to manuf file packaged with manuf.py installation",
-                           action="store",
-                           default=None)
+    argparser = argparse.ArgumentParser(
+        description="Parser utility for Wireshark's OUI database."
+    )
+    argparser.add_argument(
+        "-m",
+        "--manuf",
+        help="manuf file path. Defaults to manuf file packaged with manuf.py installation",
+        action="store",
+        default=None,
+    )
 
-    argparser.add_argument("-u", "--update",
-                           help="update manuf file from the internet",
-                           action="store_true")
-    argparser.add_argument("mac_address", nargs='?', help="MAC address to check")
+    argparser.add_argument(
+        "-u",
+        "--update",
+        help="update manuf file from the internet",
+        action="store_true",
+    )
+    argparser.add_argument("mac_address", nargs="?", help="MAC address to check")
 
-    input_args = input_args or None  # if main is called with explicit args parse these - else use sysargs
+    input_args = (
+        input_args or None
+    )  # if main is called with explicit args parse these - else use sysargs
     args = argparser.parse_args(args=input_args)
     parser = MacParser(manuf_name=args.manuf, update=args.update)
 
@@ -327,6 +340,7 @@ def main(*input_args):
         print(parser.get_all(args.mac_address))
 
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
