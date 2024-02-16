@@ -1,8 +1,8 @@
 manuf2
 ======
 
-[![Build Status](https://github.com/coolbho3k/manuf/workflows/test/badge.svg)](https://github.com/coolbho3k/manuf/actions)
-[![Build Status](https://badge.fury.io/py/manuf.svg)](https://pypi.org/project/manuf/)
+[![Build Status](https://github.com/joshschmelzle/manuf2/workflows/test/badge.svg)](https://github.com/joshschmelzle/manuf2/actions)
+[![Build Status](https://badge.fury.io/py/manuf2.svg)](https://pypi.org/project/manuf2/)
 
 Parser library for Wireshark's OUI database.
 ---
@@ -16,7 +16,7 @@ the database.
 
 See [Wireshark's OUI lookup tool](https://www.wireshark.org/tools/oui-lookup.html).
 
-This is a fork of manuf written by Michael Huang (coolbho3k).
+This is a fork of manuf maintained by Josh Schmelzle (jsz) originally written by Michael Huang (coolbho3k).
 
 Install
 ---
