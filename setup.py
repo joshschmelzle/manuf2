@@ -2,7 +2,7 @@ from setuptools import setup
 
 README = open("./README.md", "r").read()
 
-REQUIREMENTS = open("./requirements.txt", "r").read().splitlines().strip()
+REQUIREMENTS = open("./requirements.txt", "r").read().splitlines()
     
 setup(
     name="manuf2",
