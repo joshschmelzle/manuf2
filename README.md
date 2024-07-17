@@ -38,37 +38,38 @@ Usage
 
     >>> from manuf2 import manuf
     >>> p = manuf.MacParser(update=True)
-    >>> p.get_all('BC:EE:7B:00:00:00')
-    Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
-    >>> p.get_manuf('BC:EE:7B:00:00:00')
-    'AsustekC'
-    >>> p.get_comment('BC:EE:7B:00:00:00')
-    'ASUSTek COMPUTER INC.'
+    >>> p.get_all('04:D3:95:00:00:00')
+    Vendor(manuf='ASUSTekCOMPU', manuf_long='ASUSTek COMPUTER INC.', comment=None)
+    >>> p.get_manuf('04:D3:95:00:00:00')
+    'ASUSTekCOMPU'
+    >>> p.get_comment('04:D3:95:00:00:00')
+    >>>
 
 #### As a command line:
 
     $ manuf2 BC:EE:7B:00:00:00
-    Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
+    Vendor(manuf='ASUSTekCOMPU', manuf_long='ASUSTek COMPUTER INC.', comment=None)
     
 Use a manuf file in a custom location:
 
     $ manuf2 --manuf ~/manuf BC:EE:7B:00:00:00
-    Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
+    Vendor(manuf='ASUSTekCOMPU', manuf_long='ASUSTek COMPUTER INC.', comment=None)
 
 Automatically update the manuf file from Wireshark's git:
 
     $ manuf2 --update BC:EE:7B:00:00:00
-    Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
+    Vendor(manuf='ASUSTekCOMPU', manuf_long='ASUSTek COMPUTER INC.', comment=None)
 
 Note, that this command will update the manuf file bundled with this package. If you do not wish to 
 modify this, or do not have permissions to do so, you must specify a custom manuf file to perform an update.
 
     $ manuf2 --update --manuf ~/manuf BC:EE:7B:00:00:00
-    Vendor(manuf='AsustekC', comment='ASUSTek COMPUTER INC.')
+    Vendor(manuf='ASUSTekCOMPU', manuf_long='ASUSTek COMPUTER INC.', comment=None)
 
 Alternatively you can call the program with:
 
     python -m manuf2
+    
 or by executing the `manuf.py` script directly
 
 ```bash
