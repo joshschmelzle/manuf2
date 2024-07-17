@@ -1,4 +1,5 @@
 manuf.py: Parser library for Wireshark's OUI database.
+Copyright (c) 2024 Josh Schmelzle
 Copyright (c) 2017 Michael Huang
 
 This library is free software. It is dual licensed under the terms of the GNU Lesser General
