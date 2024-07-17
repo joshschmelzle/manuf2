@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 # manuf.py: Parser library for Wireshark's OUI database.
+# Copyright (c) 2024 Josh Schmelzle
 # Copyright (c) 2019 Michael Huang
 #
 # This library is free software. It is dual licensed under the terms of the GNU Lesser General
@@ -23,6 +24,8 @@ import argparse
 import re
 import sys
 import io
+import requests
+import certifi
 
 try:
     from urllib2 import Request
@@ -141,44 +144,44 @@ class MacParser(object):
             manuf_url = self.MANUF_URL
         if not manuf_name:
             manuf_name = self._manuf_name
-
+            
         # Retrieve the new database
         try:
-            response = urlopen(Request(manuf_url, headers={"User-Agent": "Mozilla"}))
-        except URLError as e:
+            response = requests.get(manuf_url, headers={"User-Agent": "Mozilla"}, verify=certifi.where())
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
             raise URLError("Failed downloading OUI database") from e
 
+
         # Parse the response
-        if response.code == 200:
+        if response.status_code == 200:
             with open(manuf_name, "wb") as write_file:
-                write_file.write(response.read())
+                write_file.write(response.content)
             if refresh:
                 self.refresh(manuf_name)
         else:
-            err = "{0} {1}".format(response.code, response.msg)
+            err = "{0} {1}".format(response.status_code, response.reason)
             raise URLError("Failed downloading database: {0}".format(err))
 
-        response.close()
         if not wfa_url:
             wfa_url = self.WFA_URL
-
+            
         # Append WFA to new database
         try:
-            response = urlopen(Request(wfa_url, headers={"User-Agent": "Mozilla"}))
-        except URLError as e:
+            response = requests.get(wfa_url, headers={"User-Agent": "Mozilla"}, verify=certifi.where())
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
             raise URLError("Failed downloading WFA database") from e
 
         # Parse the response
-        if response.code == 200:
+        if response.status_code == 200:
             with open(manuf_name, "ab") as write_file:
-                write_file.write(response.read())
+                write_file.write(response.content)
             if refresh:
                 self.refresh(manuf_name)
         else:
             err = "{0} {1}".format(response.code, response.msg)
             raise URLError("Failed downloading database: {0}".format(err))
-
-        response.close()
 
     def search(self, mac, maximum=1):
         """Search for multiple Vendor tuples possibly matching a MAC address.
