@@ -1,29 +1,188 @@
 name: publish
 
+# A release created with GITHUB_TOKEN does not trigger release: published, so the
+# monthly refresh tags, releases, builds, and publishes in this same file.
+# https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow#triggering-a-workflow-from-a-workflow
 on:
+  schedule:
+    - cron: "23 6 1 * *"
+  workflow_dispatch:
   release:
     types: [published]
-  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
+  refresh:
+    if: github.event_name != 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      publish: ${{ steps.refresh.outputs.publish }}
+      tag: ${{ steps.release.outputs.tag }}
+      sha: ${{ steps.release.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: master
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt pytest
+      - name: Refresh OUI database
+        id: refresh
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import certifi
+          import requests
+          from manuf2.manuf import MacParser
+
+          path = Path("manuf2/manuf")
+          original = path.read_bytes()
+
+          def entry_lines(data):
+              return [
+                  line
+                  for line in data.decode("utf-8").splitlines()
+                  if line.strip() and not line.startswith("#")
+              ]
+
+          def prefix(line):
+              return line.split("\t", 1)[0].strip()
+
+          def write_output(**items):
+              with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as fh:
+                  for key, value in items.items():
+                      fh.write(f"{key}={value}\n")
+
+          response = requests.get(
+              MacParser.MANUF_URL,
+              headers={"User-Agent": "Mozilla"},
+              verify=certifi.where(),
+              timeout=120,
+          )
+          response.raise_for_status()
+          new_bytes = response.content
+          old_lines = entry_lines(original)
+          new_lines = entry_lines(new_bytes)
+          if old_lines == new_lines:
+              write_output(publish="false")
+              print("OUI entries are unchanged; not releasing")
+              raise SystemExit(0)
+
+          old = len(old_lines)
+          new = len(new_lines)
+          old_by_prefix = {prefix(line): line for line in old_lines}
+          new_by_prefix = {prefix(line): line for line in new_lines}
+          added = len(set(new_by_prefix) - set(old_by_prefix))
+          removed = len(set(old_by_prefix) - set(new_by_prefix))
+          changed = sum(
+              1
+              for key in set(old_by_prefix) & set(new_by_prefix)
+              if old_by_prefix[key] != new_by_prefix[key]
+          )
+          path.write_bytes(new_bytes)
+          try:
+              MacParser(manuf_name=str(path))
+          except Exception as exc:
+              path.write_bytes(original)
+              raise SystemExit(f"refreshed manuf failed to parse: {exc}") from exc
+          if new * 10 < old * 9:
+              path.write_bytes(original)
+              raise SystemExit(f"entry count collapsed from {old} to {new}")
+
+          write_output(
+              publish="true",
+              old=old,
+              new=new,
+              added=added,
+              removed=removed,
+              changed=changed,
+          )
+          print(
+              f"manuf changed: {old} -> {new} entries; "
+              f"{added} added, {removed} removed, {changed} changed"
+          )
+          PY
+      - name: Test refreshed database
+        if: steps.refresh.outputs.publish == 'true'
+        run: |
+          cp manuf2/test/manuf /tmp/manuf-fixture
+          cp manuf2/manuf manuf2/test/manuf
+          trap 'cp /tmp/manuf-fixture manuf2/test/manuf' EXIT
+          python -m pytest
+      - name: Tag and publish GitHub release
+        id: release
+        if: steps.refresh.outputs.publish == 'true'
+        env:
+          OLD: ${{ steps.refresh.outputs.old }}
+          NEW: ${{ steps.refresh.outputs.new }}
+          ADDED: ${{ steps.refresh.outputs.added }}
+          REMOVED: ${{ steps.refresh.outputs.removed }}
+          CHANGED: ${{ steps.refresh.outputs.changed }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GIT_AUTHOR_NAME: jsz
+          GIT_AUTHOR_EMAIL: josh@joshschmelzle.com
+          GIT_COMMITTER_NAME: jsz
+          GIT_COMMITTER_EMAIL: josh@joshschmelzle.com
+        run: |
+          set -euo pipefail
+          VERSION=$(python - <<'PY'
+          import re
+          from pathlib import Path
+          path = Path("setup.py")
+          text = path.read_text(encoding="utf-8")
+          match = re.search(r'version="(\d+)\.(\d+)\.(\d+)"', text)
+          if not match:
+              raise SystemExit("version not found in setup.py")
+          major, minor, patch = match.groups()
+          version = f"{major}.{minor}.{int(patch) + 1}"
+          path.write_text(
+              text.replace(match.group(0), f'version="{version}"', 1),
+              encoding="utf-8",
+          )
+          print(version, end="")
+          PY
+          )
+          git add -- manuf2/manuf setup.py
+          git commit -m "v${VERSION}: update OUI db"
+          git tag "v${VERSION}"
+          git push --atomic origin HEAD:master "refs/tags/v${VERSION}"
+          gh release create "v${VERSION}" --notes "OUI database refresh (${OLD} -> ${NEW} entries; ${ADDED} added, ${REMOVED} removed, ${CHANGED} changed)"
+          {
+            echo "tag=v${VERSION}"
+            echo "sha=$(git rev-parse HEAD)"
+          } >> "$GITHUB_OUTPUT"
+
   test:
+    needs: refresh
+    if: always() && !cancelled() && github.event_name == 'release'
     uses: ./.github/workflows/test.yml
 
   build:
-    needs: test
+    needs: [refresh, test]
+    if: always() && !cancelled() && ((github.event_name == 'release' && needs.test.result == 'success') || (needs.refresh.result == 'success' && needs.refresh.outputs.publish == 'true'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.refresh.outputs.sha || github.sha }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Check the tag matches the package version
-        if: github.event_name == 'release'
         env:
-          TAG: ${{ github.event.release.tag_name }}
+          TAG: ${{ needs.refresh.outputs.tag || github.event.release.tag_name }}
         run: |
           VERSION=$(python -c "import re; print(re.search(r'version=\"([^\"]+)\"', open('setup.py').read()).group(1), end='')")
           if [ "${TAG#v}" != "$VERSION" ]; then
@@ -40,9 +199,10 @@ jobs:
           name: dist
           path: dist/
 
+  # Trusted publisher on PyPI is registered for this workflow file.
+  # https://docs.pypi.org/trusted-publishers/
   pypi:
     needs: build
-    if: github.event_name == 'release'
     runs-on: ubuntu-latest
     environment:
       name: pypi
