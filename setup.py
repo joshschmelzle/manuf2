@@ -7,7 +7,7 @@ REQUIREMENTS = open("./requirements.txt", "r").read().splitlines()
 setup(
     name="manuf2",
     packages=["manuf2"],
-    version="2.0.2",
+    version="2.0.3",
     description="Parser library for Wireshark's OUI database",
     author="Josh Schmelzle, Michael Huang",
     url="https://github.com/joshschmelzle/manuf2",
